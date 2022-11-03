@@ -1,0 +1,342 @@
+#include <iostream>
+#include <fstream>
+#include <cmath>
+
+using namespace std;
+
+ifstream in("mergeheap.in");
+ofstream out("mergeheap.out");
+
+struct nod
+{
+    nod *st;
+    nod *dr;
+    nod *parinte;
+    nod *partener;
+    nod *copil;
+
+    long long cheie;
+    int dim;
+    bool de_ech;
+};
+
+struct heap
+{
+    nod **arbori;
+    int max_arbori;
+    int nr_noduri;
+    int val;
+};
+
+//2-3 heap e o structura arborescenta care satisface proprietatea min
+//adica radacina arborelui e mai mica decat oricare alt nod
+//si se echilibreaza dupa fiecare operatie
+//se defineste prin inductie astfel:
+// H[i] este:
+//       un 2-3 arbore gol
+//  sau
+//       format din 1 sau 2 2-3 arbori de grad i conectati ca un 2-3 arbore Ti
+//T0 - 1 sg varf
+//Ti - 2 arbori Ti-1 sau
+//3 arbori -> radacina fiecarui arbore urmator este cel mai din dreapta copil al arborelui precedent
+
+void initializareHeap(heap *H, int max_noduri)
+{
+    H->max_arbori = (int) (0.5 + log(max_noduri + 1) / log(2.0));
+    H->arbori = new nod *[H->max_arbori];
+    H->nr_noduri = H->val = 0;
+
+    for (int i = 0; i < H->max_arbori; i++)
+    {
+        H->arbori[i] = NULL;
+    }
+}
+
+nod *creareNod(long long cheie)
+{
+    nod *n = new nod();
+    n->cheie = cheie;
+    n->dim = 0;
+    n->de_ech = false;
+    n->copil = n->parinte = n->partener = n->st = n->dr = NULL;
+
+    return n;
+}
+
+void adaugareNodCopil(nod *h, nod *n)
+{
+    nod *st, *dr;
+
+    st = h->copil;
+    if (st != NULL)
+    {
+        dr = st->dr;
+        n->st = st;
+        n->dr = dr;
+        dr->st = n;
+        st->dr = n;
+    }
+    else
+    {
+        n->st = n->dr = n;
+    }
+
+    h->copil = n;
+    n->parinte = h;
+}
+
+int mergeNoduri(nod **a, nod **b)
+{
+    nod *arbore, *urm, *alt, *urm_alt;
+
+    int c = 0;
+
+    //merge alt in arbore, in functie de cheie
+    if ((*a)->cheie >= (*b)->cheie) {
+        arbore = (*a);
+        alt = (*b);
+    } else {
+        arbore = (*b);
+        alt = (*a);
+    }
+    c++;
+
+    urm = arbore->partener;
+    urm_alt = alt->partener;
+
+    if (urm == NULL)
+    {
+        if (urm_alt != NULL)
+        {
+            adaugareNodCopil(arbore, alt);
+            (arbore->dim)++;
+
+            (*a) = NULL;
+            (*b) = arbore;
+        }
+        else
+        {
+            arbore->partener = alt;
+            alt->partener = arbore;
+            alt->de_ech = true;
+
+            (*a) = arbore;
+            (*b) = NULL;
+        }
+    }
+    else if (urm_alt == NULL)
+    {
+        arbore->partener = NULL;
+        alt->partener = urm;
+        urm->partener = alt;
+
+        if (alt->cheie > urm->cheie)
+        {
+            adaugareNodCopil(arbore, alt);
+        }
+        else
+        {
+            urm->de_ech = false;
+            alt->de_ech = true;
+            adaugareNodCopil(arbore, urm);
+        }
+
+        (arbore->dim)++;
+
+        c++;
+        (*a) = NULL;
+        (*b) = arbore;
+    }
+    else
+    {
+        arbore->partener = NULL;
+        urm->partener = NULL;
+        urm->de_ech = false;
+        urm->st = urm->dr = urm;
+        urm->parinte = NULL;
+
+        adaugareNodCopil(arbore, alt);
+        (arbore->dim)++;
+
+        (*a) = urm;
+        (*b) = arbore;
+    }
+
+    return c;
+}
+
+void aranjareHeap(heap *H, nod *lista)
+{
+    nod *urm, *de_aranjat, *de_mutat;
+    int d;
+
+    de_aranjat = lista;
+    de_mutat = NULL;
+
+    do
+    {
+        if (de_aranjat != NULL)
+        {
+            urm = de_aranjat->dr;
+            de_aranjat->dr = de_aranjat->st = de_aranjat;
+            de_aranjat->parinte = NULL;
+        }
+        else
+        {
+            de_aranjat = de_mutat;
+            de_mutat = NULL;
+        }
+
+        if (de_mutat != NULL)
+        {
+            mergeNoduri(&de_aranjat, &de_mutat);
+        }
+
+        if (de_aranjat != NULL)
+        {
+            d = de_aranjat->dim;
+            if (H->arbori[d] != NULL) {
+                mergeNoduri(&(H->arbori[d]), &de_aranjat);
+                if(H->arbori[d] == NULL)
+                    H->val -= (1 << d);
+                de_mutat = de_aranjat;
+            }
+            else
+            {
+                H->arbori[d] = de_aranjat;
+                H->val += (1 << d);
+            }
+        }
+
+        de_aranjat = urm;
+    }
+    while (de_aranjat != NULL || de_mutat != NULL);
+}
+
+nod *inserare(heap *H, long long cheie)
+{
+    nod *n = creareNod(cheie);
+    aranjareHeap(H, n);
+    H->nr_noduri ++;
+
+    return n;
+}
+
+nod *aflareNodMax(heap *H)
+{
+    nod *nod_max, *urm;
+    long long k, k2;
+    int r, v;
+
+    v = H->val;
+    r = -1;
+    while (v != 0) {
+        v = v >> 1;
+        r++;
+    }
+
+    nod_max = H->arbori[r];
+    k = nod_max->cheie;
+
+    while (r > 0) {
+        r--;
+        urm = H->arbori[r];
+        if (urm) {
+            if ((k2 = urm->cheie) > k) {
+                k = k2;
+                nod_max = urm;
+            }
+        }
+    }
+
+    return nod_max;
+}
+
+void stergereMax(heap *H, nod *nod_max)
+{
+    nod *copil, *urm, *partener;
+
+    int r = nod_max->dim;
+    if ((partener = nod_max->partener))
+    {
+        partener->partener = NULL;
+        partener->parinte = NULL;
+        partener->st = partener->dr = partener;
+        H->arbori[r] = partener;
+    }
+    else
+    {
+        H->arbori[r] = NULL;
+        H->val -= (1 << r);
+    }
+    H->nr_noduri --;
+
+    copil = nod_max->copil;
+    if (copil)
+    {
+        urm = copil->dr;
+        urm->st = copil->dr = NULL;
+        aranjareHeap(H, urm);
+    }
+}
+
+bool mergeHeap(heap *H1, heap *H2)
+{
+    for (int i = 0; i < H2->max_arbori; i++)
+    {
+        if (H2->arbori[i] != NULL)
+        {
+            H2->arbori[i]->dr = H2->arbori[i]->st = NULL;
+            aranjareHeap(H1, H2->arbori[i]);
+            H2->arbori[i] = NULL;
+        }
+    }
+    H1->nr_noduri += H2->nr_noduri;
+    H2->nr_noduri = 0;
+
+    return true;
+}
+
+int main()
+{
+    int n, q, op;
+
+    in>>n>>q;
+
+    heap *H[n+1];
+    for(int i=1; i<=n; i++)
+    {
+        H[i] = new heap;
+        initializareHeap(H[i], 300000);
+    }
+
+    int nr_heap, nr_heap2;
+    long long cheie_nod;
+    nod *nod_max;
+
+    for(int i=0; i<q; i++)
+    {
+        in>>op;
+        switch(op)
+        {
+            case 1: //inserare
+                in>>nr_heap>>cheie_nod;
+                inserare(H[nr_heap], cheie_nod);
+                break;
+            case 2: //stergere maxim
+                in>>nr_heap;
+                nod_max = aflareNodMax(H[nr_heap]);
+                out<<nod_max->cheie<<'\n';
+                stergereMax(H[nr_heap], nod_max);
+                break;
+            case 3: //merge
+                in>>nr_heap>>nr_heap2;
+                mergeHeap(H[nr_heap], H[nr_heap2]);
+                H[nr_heap2] = new heap;
+                initializareHeap(H[nr_heap2], 300000);
+                break;
+        }
+    }
+
+    return 0;
+}
