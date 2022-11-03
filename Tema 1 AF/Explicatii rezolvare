@@ -1,0 +1,37 @@
+1. Problema possible-bipartition- leetcode
+
+Marchez in matricea de adiacenta cu 1 nodurile care se displac. Daca x il displace pe y, il marchz si pe (y, x), 
+pt ca ele nu pot fi in aceeasi grupa.
+Incerc sa impart graful in doua culori, 1 si 2. Pornesc cu culoarea fiecarui nod ca fiind 0, apoi fac un bfs. In bfs colorez 
+cu 1 nodul de plecare, vecinii sai cu 2, apoi trec iar la 1...
+La final, daca doua noduri care se displac au aceeasi culoare, nu am solutie.
+
+b) Daca am solutie, salvez nodurile cu culoarea 1 pe randul 0 in rez, iar celelalte pe randul 1. Returnez rez.
+
+2.Check-dfs -csacademy
+
+Creez listele de adiacenta si le sortez in ordinea in care nodurile apar in drumul dat, pt a verifica apoi daca pot face 
+parcurgerea in ordinea data. Fac dfs si pastrez nodurile in ordinea parcurgerii. La final, verific daca aceasta e aceeasi
+cu ordinea data.
+
+3.Course schdule II-leetcode
+
+Fac o parcurgere dfs. In ea, verific daca un succesor direct al nodului se gaseste deja in parcurgere, ceea ce inseamna ca
+acel curs a fost programat inainte de cursul de care depinde, caz in care nu am solutie. Verificarea se face dupa vectorul
+viz (am -1 in el daca am inceput parcurgerea pt nod, 1 daca am terminat-o).
+Pun nodurile in stiva in ordinea inversa parcurgerii. Fac dfs pe componente conexe. Golex stiva in vectorul de solutie.
+
+b) Caut prin vectorul sol un ciclu, tinand in variabila start nodul din parcurgere care se repeta.
+Pun ciclul in sol1 si il returnez invers.
+
+4.ctc -infoarena
+
+Rezolvare cu Algoritmul lui Kosaraju.
+Fac doua dfs-uri, unul pt graf (in care salvez si nodurile in ordine inversa in stiva) si celalalt pt graful invers. 
+Daca un nod e vizitat si in graful invers, il adaug in comp. conexa curenta.
+Iau nodurile puse in stiva si daca nu au fost parcurse in dfs invers, cresc nr de comp.conexe.
+Componentele le salvez in matricea ctc.
+
+5.
+Fac bfs din toate punctele de control si pastrez in vectorul drum distanta pana la cea mai apropiat pct de control.
+O actualizez la fiecare bfs, daca e cazul.
